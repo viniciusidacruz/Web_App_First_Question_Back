@@ -1,16 +1,25 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const cors = require('cors');
-const bcrypt = require('bcrypt');
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
-const cookieParser = require('cookie-parser');
-
-const authRoutes = require('./routes/AuthRoutes');
-const { signIn, signUp } = require('./controllers/AuthControllers');
+const cors = require("cors");
+const bcrypt = require("bcrypt");
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const cookieParser = require("cookie-parser");
+const router = require("./routes/userRoutes");
 
 const app = express();
+
+app.use(express.json());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: [""],
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
+app.use("/", router);
 
 const PORT = process.env.PORT;
 const DB_USER = process.env.DB_USER;
@@ -22,25 +31,6 @@ mongoose
   )
   .then(() => {
     app.listen(PORT);
-    console.log('Connected with database Mongo DB');
+    console.log(`Connected with database Mongo DB`);
   })
   .catch((err) => console.log(err));
-
-app.get('/', (request, response) => {
-  response.status(200).json({ message: 'Está rodando' });
-});
-
-app.post('/signIn', signIn);
-app.post('/signUp', signUp);
-
-app.use(
-  cors({
-    origin: [''],
-    methods: ['GET', 'POST'],
-    credentials: true,
-  })
-);
-
-app.use(cookieParser());
-app.use(express.json());
-app.use('/', authRoutes);

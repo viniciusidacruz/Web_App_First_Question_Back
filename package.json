@@ -2,7 +2,7 @@
   "name": "First_Question_Backend",
   "version": "1",
   "description": "Project to provide data for the First Question application.",
-  "main": "server.js",
+  "main": "src/server.js",
   "repository": "https://github.com/viniciusidacruz/First_Question_Back.git",
   "author": "Vinicius Italo da Cruz",
   "license": "MIT",
