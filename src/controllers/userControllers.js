@@ -1,5 +1,10 @@
+require("dotenv").config();
+
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 const signUp = async (request, response, next) => {
   const { email, password, confirmPassword, name } = request.body;
@@ -55,6 +60,17 @@ const signIn = async (request, response, next) => {
   const existingUser = await User.findOne({ email: email });
   const isPasswordCorrect = bcrypt.compareSync(password, existingUser.password);
 
+  const token = jwt.sign({ id: existingUser._id }, JWT_SECRET_KEY, {
+    expiresIn: "24h",
+  });
+
+  response.cookie(String(existingUser._id), token, {
+    path: "/",
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    httpOnly: true,
+    sameSite: "lax",
+  });
+
   if (!email) {
     return response.status(422).json({ message: "O email é obrigatório" });
   }
@@ -73,8 +89,48 @@ const signIn = async (request, response, next) => {
     return response.status(400).json({ message: "Email/Senha invalida" });
   }
 
-  return response.status(200).json({ message: "Logado com sucesso!!!" });
+  return response
+    .status(200)
+    .json({ message: "Logado com sucesso!!!", user: existingUser, token });
+};
+
+const verifyToken = (request, response, next) => {
+  const cookies = request.headers.cookie;
+  const token = cookies.split("=")[1];
+
+  if (!token) {
+    response.status(401).json({ message: "Acesso negado" });
+  }
+
+  jwt.verify(String(token), JWT_SECRET_KEY, (err, user) => {
+    if (err) {
+      return response.status(400).json({ message: "Token invalido" });
+    }
+
+    request.id = user.id;
+  });
+  next();
+};
+
+const getToken = async (request, response, next) => {
+  const userId = request.id;
+
+  let user;
+
+  try {
+    user = await User.findById(userId, "-password");
+  } catch (err) {
+    return new Error(err.message);
+  }
+
+  if (!user) {
+    return response.status(404).json({ message: "Usuário não encontrado." });
+  }
+
+  return response.status(200).json({ user });
 };
 
 exports.signUp = signUp;
 exports.signIn = signIn;
+exports.verifyToken = verifyToken;
+exports.getToken = getToken;
